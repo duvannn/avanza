@@ -68,71 +68,70 @@ class Avanza(object):
 
         return bs4.BeautifulSoup(request.content.decode("UTF-8"), "lxml")
 
-    def summary(self, page, selector):
+    def scrape(self, page, selector):
         """Return the text inside a span selector."""
         # Avanza returns status code 200 even if the information is not
         # available...
         try:
-            return (self.get_html(page).find(class_=selector)
-                                       .get_text(strip=True)
-                                       .replace("\xa0", ""))
+            return (self.html(page).find(class_=selector).get_text(
+                    strip=True).replace("\xa0", ""))
         except AttributeError:
             return
 
     @auth_required
     def balance(self):
         """Get your accounts balance."""
-        return self.summary(const.HOMEPAGE, const.TOTAL_BALANCE)
+        return self.scrape(const.HOMEPAGE, const.TOTAL_BALANCE)
 
     @auth_required
     def purchase_balance(self):
         """Get the amount of money available to make purchases with."""
-        return self.summary(const.HOMEPAGE, const.BUYING_POWER)
+        return self.scrape(const.HOMEPAGE, const.BUYING_POWER)
 
     @auth_required
     def total_value(self):
         """Get your accounts total value (balance + stocks)."""
-        return self.summary(const.HOMEPAGE, const.TOTAL_VALUE)
+        return self.scrape(const.HOMEPAGE, const.TOTAL_VALUE)
 
     @auth_required
     def growth(self):
         """Get your growth this year."""
         try:
-            return self.summary(const.HOMEPAGE, const.GROWTH_POS)
+            return self.scrape(const.HOMEPAGE, const.GROWTH_POS)
         except (AttributeError, KeyError):
-            return self.summary(const.HOMEPAGE, const.GROWTH_NEG)
+            return self.scrape(const.HOMEPAGE, const.GROWTH_NEG)
 
     @auth_required
-    def get_accounts(self):
-        """Get all your Avanza accounts."""
-        find_all_accounts = (self.get_html("/mina-sidor/min-profil/"
-                                           "mina-konton.html")
-                             .find_all("a", class_="link "))
+    def accounts(self):
+        """Get all your Avanza accounts"""
+        find_all_accounts = (self.html("/mina-sidor/min-profil/"
+                                       "mina-konton.html").find_all(
+                                       "a", class_="link "))
 
         return [account.text for account in find_all_accounts]
 
     @auth_required
     def account_info(self, account):
-        """Get account info."""
+        """Get account info"""
         page = "/mina-sidor/kontooversikt.{}.html".format(account)
 
         try:
-            growth = self.summary(page, const.GROWTH_POS)
+            growth = self.scrape(page, const.GROWTH_POS)
         except (AttributeError, KeyError):
-            growth = self.summary(page, const.GROWTH_NEG)
+            growth = self.scrape(page, const.GROWTH_NEG)
 
         return {
             account: {
                 "Utveckling i år": growth,
-                "Saldo": self.summary(page, const.TOTAL_BALANCE),
-                "Tillgänligt för köp": self.summary(page, const.BUYING_POWER),
-                "Totalt värde": self.summary(page, const.TOTAL_VALUE)}
+                "Saldo": self.scrape(page, const.TOTAL_BALANCE),
+                "Tillgänligt för köp": self.scrape(page, const.BUYING_POWER),
+                "Totalt värde": self.scrape(page, const.TOTAL_VALUE)}
                }
 
     # TODO: needs improvement, possibly get titles + date
     def telegrams(self, limit=None):
         """Get all the telegrams from Avanza's Placera website."""
-        get_links = (self.get_html("/placera/telegram.html")
+        get_links = (self.html("/placera/telegram.html")
                      .find_all("li", {"class": ["oddItem", "evenItem"]}))
 
         return [const.URL + link.a["href"] for link in get_links[:limit]]
