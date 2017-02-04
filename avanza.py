@@ -8,6 +8,7 @@ A module to fetch information from Avanza.se.
 
 """
 
+import time
 import websocket
 import json
 import logging
@@ -193,8 +194,15 @@ class Avanza(object):
 
         return json.loads(response)
 
+    @property
+    def unix_timestamp(self):
+        """Returns the current UNIX time, including the millis"""
+        return int(round(time.time() * 1000))
 
-# TODO: improve the scraping of account information
+    def search(self):
+        """Search the Avanza website"""
+
+
 # TODO: get purchased stocks
 # TODO: get transactions
 # TODO: allow `get_telegrams` to get more than one page (default: 1)
