@@ -8,6 +8,8 @@ A module to fetch information from Avanza.se.
 
 """
 
+from pprint import pprint
+
 import time
 import websocket
 import json
@@ -70,7 +72,7 @@ class Avanza(object):
         return bs4.BeautifulSoup(request.content.decode("UTF-8"), "lxml")
 
     def scrape(self, page, selector):
-        """Return the text inside a span selector."""
+        """Return the text of a HTML tag."""
         # Avanza returns status code 200 even if the information is not
         # available...
         try:
@@ -114,26 +116,26 @@ class Avanza(object):
     @auth_required
     def account_info(self, account):
         """Get account info"""
-        page = "/mina-sidor/kontooversikt.{}.html".format(account)
+        url = "/mina-sidor/kontooversikt.{}.html".format(account)
 
         try:
-            growth = self.scrape(page, const.GROWTH_POS)
+            growth = self.scrape(url, const.GROWTH_POS)
         except (AttributeError, KeyError):
-            growth = self.scrape(page, const.GROWTH_NEG)
+            growth = self.scrape(url, const.GROWTH_NEG)
 
         return {
             account: {
                 "Utveckling i år": growth,
-                "Saldo": self.scrape(page, const.TOTAL_BALANCE),
-                "Tillgänligt för köp": self.scrape(page, const.BUYING_POWER),
-                "Totalt värde": self.scrape(page, const.TOTAL_VALUE)}
+                "Saldo": self.scrape(url, const.TOTAL_BALANCE),
+                "Tillgänligt för köp": self.scrape(url, const.BUYING_POWER),
+                "Totalt värde": self.scrape(url, const.TOTAL_VALUE)}
                }
 
     # TODO: needs improvement, possibly get titles + date
     def telegrams(self, limit=None):
         """Get all the telegrams from Avanza's Placera website."""
-        get_links = (self.html("/placera/telegram.html")
-                     .find_all("li", {"class": ["oddItem", "evenItem"]}))
+        get_links = (self.html("/placera/telegram.html").find_all(
+                     "li", {"class": ["oddItem", "evenItem"]}))
 
         return [const.URL + link.a["href"] for link in get_links[:limit]]
 
@@ -199,9 +201,34 @@ class Avanza(object):
         """Returns the current UNIX time, including the millis"""
         return int(round(time.time() * 1000))
 
-    def search(self):
+    def search(self, term):
         """Search the Avanza website"""
+        results = {}
+        url = "/ab/sok/inline?query={}&_={}".format(term, self.unix_timestamp)
+        page_src = self.html(url)
+        result_page = page_src.find_all("a", class_="srchResLink")
 
+        types = {
+            "aktier": "stock",
+            "optioner": "option",
+            "terminer": "futures",
+            "obligationer": "equity bond",
+        }
+
+        for result in result_page:
+            type_ = result["href"].split("/")[1]
+
+            try:
+                type_ = types[type_]
+            except KeyError:
+                type_ = None
+
+            name = result["title"]
+            url = result["href"]
+
+            results[name] = {"type": type_, "url": url}
+
+        return results
 
 # TODO: get purchased stocks
 # TODO: get transactions
