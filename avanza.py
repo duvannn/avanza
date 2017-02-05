@@ -236,6 +236,10 @@ class Avanza(object):
 
         return results
 
+    def data(self, id):
+        """Get the data from an orderbook id"""
+        raise NotImplementedError
+
 # TODO: get purchased stocks
 # TODO: get transactions
 # TODO: allow `get_telegrams` to get more than one page (default: 1)
