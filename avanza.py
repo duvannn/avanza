@@ -219,8 +219,9 @@ class Avanza(object):
             item_info = item.find("td", class_=items_css_class).find_next()
             last_updated = item_info["title"].split()[2]
             price = item_info.get_text(strip=True)
-            name = result["title"].replace(" ", "")
+            name = result["title"]
             url_path = result["href"]
+            orderbook_id = result["href"].split("/")[3]
 
             try:
                 type_ = types[type_]
@@ -229,6 +230,7 @@ class Avanza(object):
 
             results[name] = {"type": type_,
                              "url": const.URL + url_path,
+                             "id": orderbook_id,
                              "price": price,
                              "lastUpdated": last_updated}
 
