@@ -8,8 +8,6 @@ A module to fetch information from Avanza.se.
 
 """
 
-from pprint import pprint
-
 import time
 import websocket
 import json
@@ -48,7 +46,7 @@ class Avanza(object):
             logging.basicConfig(level=logging.DEBUG)
 
         if self.username and self.password:
-            self.connection = websocket.create_connection(const.SOCKET_URL)
+            # self.connection = websocket.create_connection(const.SOCKET_URL)
             self.login()
 
     def login(self):
@@ -207,26 +205,32 @@ class Avanza(object):
         url = "/ab/sok/inline?query={}&_={}".format(term, self.unix_timestamp)
         page_src = self.html(url)
         result_page = page_src.find_all("a", class_="srchResLink")
-
+        items = page_src.find_all("table", class_="noHighlight pad")
+        items_css_class = ("tRight upperCase bold "
+                           "XSText noPaddingRight bottomAlign")
         types = {
             "aktier": "stock",
             "optioner": "option",
             "terminer": "futures",
-            "obligationer": "equity bond",
-        }
+            "obligationer": "equity bond"}
 
-        for result in result_page:
+        for result, item in zip(result_page, items):
             type_ = result["href"].split("/")[1]
+            item_info = item.find("td", class_=items_css_class).find_next()
+            last_updated = item_info["title"].split()[2]
+            price = item_info.get_text(strip=True)
+            name = result["title"].replace(" ", "")
+            url_path = result["href"]
 
             try:
                 type_ = types[type_]
             except KeyError:
                 type_ = None
 
-            name = result["title"]
-            url = result["href"]
-
-            results[name] = {"type": type_, "url": url}
+            results[name] = {"type": type_,
+                             "url": const.URL + url_path,
+                             "price": price,
+                             "lastUpdated": last_updated}
 
         return results
 
